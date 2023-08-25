@@ -1,0 +1,35 @@
+vars:
+  DOMAIN: ""
+  OUTPUT_DIR: "results"
+parallel: false
+modules:
+  - name: search-subdomains-subfinderALL
+    cmds:
+      - mkdir -p {{OUTPUT_DIR}}
+      - subfinder -d {{DOMAIN}} -all -silent > {{OUTPUT_DIR}}/subdomains.txt
+    silent: false
+
+  - name: download-Wordlist-RaftLarge
+    cmds:
+      - curl --silent https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-directories.txt > {{OUTPUT_DIR}}/raft-large-directories.txt
+    silent: false
+
+  - name: valid-subdomais-portscan
+    cmds:
+      - cat {{OUTPUT_DIR}}/subdomains.txt | naabu -top-ports 100 -silent > {{OUTPUT_DIR}}/subdomainsPortscan.txt
+    silent: true
+
+  - name: valid-subdomains-httpx
+    cmds:
+      - cat {{OUTPUT_DIR}}/subdomainsPortscan.txt | httpx -silent -threads 300 > {{OUTPUT_DIR}}/subdomains200.txt
+    silent: true
+
+  - name: bruteforce-dirsearch
+    cmds:
+      - dirsearch -l {{OUTPUT_DIR}}/subdomains200.txt --full-url -F -q -i 200 -w {{OUTPUT_DIR}}/raft-large-directories.txt -o {{OUTPUT_DIR}}/bruteforceList.txt
+    silent: true  
+
+  - name: cleaning-temp-files
+    cmds:
+      - rm *.state subdomainsPortscan.txt subdomains.txt raft-large-directories.txt
+    silent: true
